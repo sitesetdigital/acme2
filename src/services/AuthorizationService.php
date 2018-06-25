@@ -13,6 +13,7 @@ namespace stonemax\acme2\services;
 use stonemax\acme2\Client;
 use stonemax\acme2\constants\CommonConstant;
 use stonemax\acme2\exceptions\AuthorizationException;
+use stonemax\acme2\exceptions\LocalVerificationFailedException;
 use stonemax\acme2\helpers\CommonHelper;
 use stonemax\acme2\helpers\OpenSSLHelper;
 use stonemax\acme2\helpers\RequestHelper;
@@ -136,9 +137,9 @@ class AuthorizationService
 
         $keyAuthorization = $challenge['token'].'.'.OpenSSLHelper::generateThumbprint();
 
-        while (!$this->verifyLocally($type, $keyAuthorization))
+        if (!$this->verifyLocally($type, $keyAuthorization))
         {
-            sleep(3);
+            throw new LocalVerificationFailedException("Failed to verify locally");
         }
 
         $jwk = OpenSSLHelper::generateJWSOfKid(
