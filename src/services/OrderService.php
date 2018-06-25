@@ -630,6 +630,12 @@ class OrderService
         return file_put_contents($this->_orderInfoPath, json_encode($orderInfo));
     }
 
+    public function clearCachedOrderInfo() {
+        if(file_exists($this->_orderInfoPath)) {
+            unlink($this->_orderInfoPath);
+        }
+    }
+
     /**
      * Populate properties of this instance
      * @param array $orderInfo
