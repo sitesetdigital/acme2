@@ -132,6 +132,13 @@ class OrderService
     private $_orderInfoPath;
 
     /**
+     * Timeout in seconds for all busy wait loops
+     *
+     * @var int
+     */
+    protected $timeout;
+
+    /**
      * OrderService constructor.
      * @param array $domainInfo
      * @param string $algorithm
@@ -141,8 +148,9 @@ class OrderService
      * @throws \stonemax\acme2\exceptions\NonceException
      * @throws \stonemax\acme2\exceptions\RequestException
      */
-    public function __construct($domainInfo, $algorithm, $renew = FALSE)
+    public function __construct($domainInfo, $algorithm, $renew = FALSE, $timeout = 10)
     {
+        $this->timeout = intval($timeout);
         $this->_algorithm = $algorithm;
         $this->_renew = boolval($renew);
 
@@ -374,7 +382,7 @@ class OrderService
             throw new OrderException("There are still some authorizations that are not valid.");
         }
 
-        if ($this->status == 'pending')
+        if ($this->status == 'pending' || $this->status === 'ready')
         {
             if (!$csr)
             {
@@ -384,11 +392,16 @@ class OrderService
             $this->finalizeOrder(CommonHelper::getCSRWithoutComment($csr));
         }
 
+        $busyStart = time();
         while ($this->status != 'valid')
         {
             sleep(3);
 
             $this->getOrder();
+
+            if((time() - $busyStart) >= $this->timeout) {
+                throw new OrderException("Timeout of {$this->timeout} exceeded");
+            }
         }
 
         list($code, $header, $body) = RequestHelper::get($this->certificate);
